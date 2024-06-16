@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text-to-Image & Image-to-Image</title>
+    <style>
+        .container {
+            margin: 20px;
+        }
+        .image-container {
+            margin-top: 20px;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin-top: 10px;
+        }
+        .spinner {
+            display: none;
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid #3498db;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-top: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .clear-btn {
+            cursor: pointer;
+            color: red;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>StableDiffusion Implementation</h1>
+
+        <form id="generate-form" method="POST" enctype="multipart/form-data">
+            <h2>Text-to-Image Generation</h2>
+            <label for="text_prompt">Text Prompt:</label><br>
+            <textarea id="text_prompt" name="text_prompt" rows="4" cols="50"></textarea><br><br>
+
+            <h2>Image-to-Image Manipulation</h2>
+            <label for="input_image">Upload Image (Optional):</label><br>
+            <input type="file" id="input_image" name="input_image"><span class="clear-btn" id="clear-btn">X</span><br><br>
+
+            <button type="submit">Generate Image</button>
+        </form>
+
+        <div class="spinner" id="spinner"></div>
+
+        <div class="image-container" id="image-container">
+            {% if generated_image %}
+            <h2>Generated Image</h2>
+            <img src="{{ url_for('uploaded_file', filename=generated_image) }}?{{ time.time() }}" alt="Generated Image">
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('generate-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const spinner = document.getElementById('spinner');
+            const imageContainer = document.getElementById('image-container');
+
+            spinner.style.display = 'block';
+            imageContainer.style.display = 'none';
+
+            const formData = new FormData(this);
+
+            fetch('/generate', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                spinner.style.display = 'none';
+
+                if (data.generated_image) {
+                    const timestamp = new Date().getTime();
+                    imageContainer.innerHTML = `<h2>Generated Image</h2>
+                        <img src="static/images/${data.generated_image}?${timestamp}" alt="Generated Image">`;
+                }
+
+                imageContainer.style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                spinner.style.display = 'none';
+                imageContainer.style.display = 'block';
+            });
+        });
+
+        document.getElementById('clear-btn').addEventListener('click', function() {
+            const inputImage = document.getElementById('input_image');
+            inputImage.value = '';  // Clear the file input
+        });
+    </script>
+</body>
+</html>
